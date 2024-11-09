@@ -86,3 +86,32 @@ def handle_admin(command, client_ip):
         return "\n".join(connected_users)
     else:
         return "Invalid admin command."
+    
+    # Handle commands for regular users
+def handle_user(command, username):
+    args = command.split(' ', 1)
+    if args[0] == "READ":
+        filename = args[1]
+        try:
+            with open(filename, 'r') as f:
+                return f.read()
+        except FileNotFoundError:
+            return "File not found."
+    else:
+        return "Permission denied. Users can only read files."
+
+# Logout users after timeout
+def logout_user(client_ip):
+    with lock:
+        if client_ip in roles["admin"]:
+            del roles["admin"][client_ip]
+        elif client_ip in roles["users"].values():
+            username = next(user for user, ip in roles["users"].items() if ip == client_ip)
+            del roles["users"][username]
+        if client_ip in clients:
+            del clients[client_ip]
+        if client_ip in client_usernames:
+            del client_usernames[client_ip]
+        if client_ip in logout_timers:
+            del logout_timers[client_ip]
+    print(f"User {client_ip} logged out automatically after {LOGOUT_DELAY} seconds.")
