@@ -46,3 +46,19 @@ def admin_menu():
             return
         else:
             print("Invalid choice. Try again.")
+
+def user_menu(username):
+    while True:
+        print("\nUser Menu:")
+        print("1. Read file")
+        print("2. Logout")
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            filename = input("Enter filename to read: ")
+            send_message(f"READ {filename}")
+        elif choice == '2':
+            print("Logging out...")
+            return
+        else:
+            print("Invalid choice. Try again.")
