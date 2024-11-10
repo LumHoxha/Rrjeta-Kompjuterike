@@ -234,3 +234,26 @@ def remove_inactive_clients():
         for client_ip in to_remove:
             print(f"Disconnecting inactive client: {client_ip}")
             logout_user(client_ip)
+
+# Start server
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server.bind((server_ip, server_port))
+
+print(f"Server listening on {server_ip}:{server_port}")
+
+# Start a thread to clean up inactive clients
+threading.Thread(target=remove_inactive_clients, daemon=True).start()
+
+while True:
+    try:
+        data, addr = server.recvfrom(1024)
+        client_ip = addr[0]
+
+        with lock:
+            clients[client_ip] = time.time()
+
+        response = handle_client(data, addr)
+        server.sendto(response.encode(), addr)
+    except Exception as e:
+        print(f"Error: {e}")
+        break
