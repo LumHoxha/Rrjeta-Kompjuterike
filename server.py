@@ -115,3 +115,122 @@ def logout_user(client_ip):
         if client_ip in logout_timers:
             del logout_timers[client_ip]
     print(f"User {client_ip} logged out automatically after {LOGOUT_DELAY} seconds.")
+
+# Handle client requests
+def handle_client(data, addr):
+    client_ip = addr[0]
+    message = data.decode()
+
+    # Track the username for logging and permission checking
+    if client_ip in client_usernames:
+        username = client_usernames[client_ip]
+    else:
+        username = "Unknown"
+
+    log_message(client_ip, username, message)  # Log the message with the current username
+
+    # Process login commands
+    if message.startswith("LOGIN"):
+        _, role, username_input = message.split(' ', 2)
+
+        if role == "admin":
+            client_usernames[client_ip] = "admin"
+            roles["admin"][client_ip] = "admin"
+            print(f"Admin logged in from {client_ip}")
+            return f"Admin login successful."
+
+        elif role == "user":
+            if len(roles["users"]) < MAX_USERS:
+                roles["users"][username_input] = client_ip
+                client_usernames[client_ip] = username_input
+
+                # Start a timer to auto-logout the user after LOGOUT_DELAY seconds
+                if client_ip in logout_timers:
+                    logout_timers[client_ip].cancel()
+                logout_timers[client_ip] = threading.Timer(LOGOUT_DELAY, logout_user, [client_ip])
+                logout_timers[client_ip].start()
+
+                print(f"User {username_input} logged in from {client_ip}")
+                return f"User {username_input} login successful."
+            else:
+                return "Maximum user connections reached."
+        else:
+            return "Invalid role."
+
+    # After login, identify role again
+    if client_ip in roles["admin"]:
+        username = "admin"
+    elif client_ip in roles["users"].values():
+        username = next(user for user, ip in roles["users"].items() if ip == client_ip)
+    else:
+        return "Unauthorized. Please login first."
+
+    # Debug output to check role handling
+    print(f"Current role for {client_ip} is '{username}'.")
+
+    # Handle admin or user requests based on the logged-in role
+    if username == "admin":
+        return handle_admin(message, client_ip)
+    elif username != "Unknown":
+        return handle_user(message, username)
+    else:
+        return "Unauthorized. Please login first."
+    client_ip = addr[0]
+    message = data.decode()
+
+    if client_ip in client_usernames:
+        username = client_usernames[client_ip]
+    else:
+        username = "Unknown"
+
+    log_message(client_ip, username, message)  # Log each client message
+
+    if message.startswith("LOGIN"):
+        _, role, username_input = message.split(' ', 2)
+        if role == "admin":
+            client_usernames[client_ip] = "admin"
+            roles["admin"][client_ip] = "admin"
+            return f"Admin login successful."
+        elif role == "user":
+            if len(roles["users"]) < MAX_USERS:
+                roles["users"][username_input] = client_ip
+                client_usernames[client_ip] = username_input
+                if client_ip in logout_timers:
+                    logout_timers[client_ip].cancel()
+                logout_timers[client_ip] = threading.Timer(LOGOUT_DELAY, logout_user, [client_ip])
+                logout_timers[client_ip].start()
+                return f"User {username_input} login successful."
+            else:
+                return "Maximum user connections reached."
+        else:
+            return "Invalid role."
+
+    if client_ip in roles["admin"]:
+        username = "admin"
+    elif client_ip in roles["users"].values():
+        username = next(user for user, ip in roles["users"].items() if ip == client_ip)
+    else:
+        return "Unauthorized. Please login first."
+
+    if username == "admin":
+        return handle_admin(message, client_ip)
+    elif username != "Unknown":
+        return handle_user(message, username)
+    else:
+        return "Unauthorized. Please login first."
+
+# Remove inactive clients after a timeout
+def remove_inactive_clients():
+    while True:
+        time.sleep(5)
+        current_time = time.time()
+        to_remove = []
+
+        with lock:
+            for client_ip, last_active in clients.items():
+                if current_time - last_active > TIMEOUT:
+                    to_remove.append(client_ip)
+
+        for client_ip in to_remove:
+            print(f"Disconnecting inactive client: {client_ip}")
+            logout_user(client_ip)
