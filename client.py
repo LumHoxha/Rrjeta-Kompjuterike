@@ -62,3 +62,30 @@ def user_menu(username):
             return
         else:
             print("Invalid choice. Try again.")
+
+def login_menu():
+    while True:
+        print("\nLogin Menu:")
+        print("1. Login as Admin")
+        print("2. Login as User")
+        print("3. Exit")
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            response = send_message("LOGIN admin admin")
+            if "successful" in response:
+                admin_menu()
+        elif choice == '2':
+            username = input("Enter your username: ")
+            response = send_message(f"LOGIN user {username}")
+            if "successful" in response:
+                user_menu(username)
+        elif choice == '3':
+            print("Exiting...")
+            client.close()
+            break
+        else:
+            print("Invalid choice. Try again.")
+
+# Start the login process
+login_menu()
