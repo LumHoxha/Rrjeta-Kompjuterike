@@ -11,7 +11,7 @@ def send_message(message):
     print(f"Server response: {response.decode()}")
     return response.decode()
 
-# Ensure this function is defined before admin_menu
+#funksioni per te shkruar ne file kur kemi qasje si admin
 def write_to_file(filename):
     response = send_message(f"WRITE {filename}")
     if response.startswith("Ready to write"):
